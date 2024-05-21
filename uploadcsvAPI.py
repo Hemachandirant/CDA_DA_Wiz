@@ -14,6 +14,7 @@ from sqlalchemy import create_engine, inspect, Table, Column, MetaData, Integer,
 from sqlalchemy.dialects.mysql import VARCHAR
 # Set up logging configuration
 logging.basicConfig(level=logging.DEBUG)
+import chardet
   
 
 import numpy as np  
@@ -57,49 +58,54 @@ async def create_db(db_name: str):
         cursor.execute(f"CREATE DATABASE {db_name}")  
         return {"status": f"Database {db_name} created successfully."}  
     
-@app.post("/upload_file_info")  
-async def upload_file_info(files: List[UploadFile] = File(...)):  
-    global uploaded_files_info  # Reference the global variable  
-    uploaded_files_info = []  # Reset the global variable  
-  
-    file_infos = []  # Create a list to store file info for all files  
-  
-    for file in files:  
-        file_extension = os.path.splitext(file.filename)[-1].lower()  
-        file_content = await file.read()  # Read file content  
-  
-        # Load data into DataFrame based on file extension  
-        if file_extension == ".csv":  
-            df = pd.read_csv(io.StringIO(file_content.decode("utf-8")))  
-        elif file_extension == ".xlsx":  
-            df = pd.read_excel(io.BytesIO(file_content))  
-        else:  
-            return {"error": f"Invalid file format in {file.filename}. Please upload a CSV or XLSX file."}  
-  
-        # Calculate file size  
-        file_size = len(file_content) / 1024 / 1024  # Size in MB  
-  
-        # Store file info  
-        file_info = {  
-            "filename": file.filename,  
-            "total_rows": df.shape[0],  
-            "total_columns": df.shape[1],  
-            "file_size(MB)": file_size  
-        }  
-  
-        # Save the file content to a temporary file  
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_extension)  
-        temp_file.write(file_content)  
-        temp_file.close()  
-  
-        # Append the file path and name to the global list  
-        uploaded_files_info.append({"file_path": temp_file.name, "file_name": file.filename})  
-          
-        # Append the file info to the list  
-        file_infos.append(file_info)  
-        logging.debug(uploaded_files_info)  
-  
-    return {"file_info": file_infos, "saved_files": uploaded_files_info}  
+
+@app.post("/upload_file_info")
+async def upload_file_info(files: List[UploadFile] = File(...)):
+    global uploaded_files_info  # Reference the global variable
+    uploaded_files_info = []  # Reset the global variable
+
+    file_infos = []  # Create a list to store file info for all files
+
+    for file in files:
+        file_extension = os.path.splitext(file.filename)[-1].lower()
+        file_content = await file.read()  # Read file content
+
+        # Detect file encoding
+        result = chardet.detect(file_content)
+        encoding = result['encoding']
+
+        # Load data into DataFrame based on file extension
+        if file_extension == ".csv":
+            df = pd.read_csv(io.StringIO(file_content.decode(encoding)))
+        elif file_extension == ".xlsx":
+            df = pd.read_excel(io.BytesIO(file_content))
+        else:
+            return {"error": f"Invalid file format in {file.filename}. Please upload a CSV or XLSX file."}
+
+        # Calculate file size
+        file_size = len(file_content) / 1024 / 1024  # Size in MB
+
+        # Store file info
+        file_info = {
+            "filename": file.filename,
+            "total_rows": df.shape[0],
+            "total_columns": df.shape[1],
+            "file_size(MB)": file_size
+        }
+
+        # Save the file content to a temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_extension)
+        temp_file.write(file_content)
+        temp_file.close()
+
+        # Append the file path and name to the global list
+        uploaded_files_info.append({"file_path": temp_file.name, "file_name": file.filename})
+
+        # Append the file info to the list
+        file_infos.append(file_info)
+        logging.debug(uploaded_files_info)
+
+    return {"file_info": file_infos, "saved_files": uploaded_files_info}
 
 
 
@@ -116,11 +122,18 @@ async def upload_and_clean():
         file_name = file_info["file_name"]
         file_extension = os.path.splitext(file_path)[-1].lower()
 
+        with open(file_path, 'rb') as file:
+            file_content = file.read()
+
+        # Detect file encoding
+        result = chardet.detect(file_content)
+        encoding = result['encoding']
+
         # Load the DataFrame based on file extension
         if file_extension == ".csv":
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(io.StringIO(file_content.decode(encoding)))
         elif file_extension == ".xlsx":
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(io.BytesIO(file_content))
         else:
             return {"error": f"Invalid file format in {file_name}. Please upload a CSV or XLSX file."}
 
@@ -174,6 +187,7 @@ async def upload_and_clean():
         sanitization_infos.append(sanitization_info)
 
     return sanitization_infos
+
 
 
 def infer_primary_key(df):
