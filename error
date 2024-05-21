@@ -1,0 +1,17 @@
+Uncaught SyntaxError: Identifier 'fileInput' has already been declared (at startmin.js:1:1)
+index.html:1 Access to fetch at 'http://127.0.0.1:8000/docs#/default/create_db_create_db_post' from origin 'http://127.0.0.1:5504' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
+uploadwizard.js:365 
+
+       POST http://127.0.0.1:8000/docs net::ERR_FAILED
+createDatabase @ uploadwizard.js:365
+(anonymous) @ uploadwizard.js:241
+uploadwizard.js:365 
+
+
+       Uncaught (in promise) TypeError: Failed to fetch
+    at createDatabase (uploadwizard.js:365:28)
+    at HTMLButtonElement.<anonymous> (uploadwizard.js:241:17)
+createDatabase @ uploadwizard.js:365
+(anonymous) @ uploadwizard.js:241
+await in (anonymous) (async)
+(anonymous) @ uploadwizard.js:241
