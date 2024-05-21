@@ -4,6 +4,7 @@ import mysql.connector
 import io    
 import pandas as pd    
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os   
 import json  
@@ -32,6 +33,9 @@ temp_file_paths = []  # Initialize the list
 sanitization_infos = [] 
 
 
+
+
+
 engine = create_engine("mysql+mysqlconnector://root:admin@localhost/cda") 
 # Function to convert date format    
 def convert_date(date_str):    
@@ -41,6 +45,19 @@ def convert_date(date_str):
         return None    
   
 app = FastAPI()    
+
+# Allow CORS for your frontend origin
+origins = [
+    "http://127.0.0.1:5504",  # Frontend origin
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
   
 @app.post("/create_db")  
 async def create_db(db_name: str): 
